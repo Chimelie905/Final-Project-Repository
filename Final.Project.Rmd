@@ -1,0 +1,344 @@
+---
+---
+title: "Final Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+https://www.bls.gov/brs/data/tables/
+
+
+My data was retrieved from the Bureau of Labor Statistics at the URL above. It's a Business Response (BRS) about the impact of coronavirus on business within the US and was conducted from July 20, 2020 - September 30, 2020. Responses were requested via email and printletters and collected online. The purpose of the survey was to help understand how businesses have responded to the pandemic. 
+I chose this dataset because I've recently been bombarded with commercials and advertisements about what lsrge businesses have been making to procedure in order adjust to the "new normal" and to help accomodate their employees but I was interested in whether or not these changes were real and whether they were  representative of a general trend.
+The main question I wanted to answer was whether the likelihood of a business accommodating its employees is related to politics - more specifically whether employee accomodations are influenced by the political party of the state. 
+
+## Required Packages
+
+
+```{r Required Packages, echo=TRUE}
+library(readr)
+library(gt)
+library(tidyverse)
+library(dplyr)
+```
+
+# Cleaning 
+
+
+After looking at the data key I was able to identify a few survey questions that were relevant to the questions I wanted to answer so I renamed these variables and merged the datasets which they came from using "State" as it was the one column each set had in common. 
+
+## Variable Selection
+
+
+```{r, echo=FALSE}
+covid_table2_q1_state <- read_csv("~/Desktop/DDD-I21/covid-csv-data-files/covid-table2-q1-state.csv")
+covid_table5_q2_state <- read_csv("~/Desktop/DDD-I21/covid-csv-data-files/covid-table5-q2-state.csv")
+covid_table8_q3_state <- read_csv("~/Desktop/DDD-I21/covid-csv-data-files/covid-table8-q3-state.csv")
+covid_table11_q4_state <- read_csv("~/Desktop/DDD-I21/covid-csv-data-files/covid-table11-q4-state.csv")
+covid_table14_q5_state <- read_csv("~/Desktop/DDD-I21/covid-csv-data-files/covid-table14-q5-state.csv")
+covid_table17_q6_state <- read_csv("~/Desktop/DDD-I21/covid-csv-data-files/covid-table17-q6-state.csv")
+covid_table20_q7_state <- read_csv("~/Desktop/DDD-I21/covid-csv-data-files/covid-table20-q7-state.csv")
+
+Demand_closure_state <- covid_table2_q1_state
+Demand_closure_state <- rename(all_of(Demand_closure_state), 
+                                       Statec = State, 
+                                       percent.w.supply.shortage = Q1_r5_p,
+                                       percent.w.supply.shortage.se = Q1_r5_p_se, 
+                                       percent.w.decreased.demand = Q1_r6_p, 
+                                       percent.w.decreased.demand.se = Q1_r6_p_se, 
+                                       percent.w.increased.demand = Q1_r7_p, 
+                                       percent.w.increased.demand.se = Q1_r7_p_se, 
+                                       percent.gov.closure = Q1_r9_p, 
+                                       percent.gov.closure.se = Q1_r9_p_se, 
+                                       percent.no.impact = Q1_r12_p, 
+                                       percent.no.impact.se = Q1_r12_p_se)
+Business_state <- covid_table5_q2_state
+Business_state <- rename(all_of(Business_state), 
+                                Statec = State, 
+                                percent.hired.more = Q2_r5_p, 
+                                percent.hired.more.se = Q2_r5_p_se, 
+                                percent.not.work = Q2_r6_p, 
+                                percent.not.work.se = Q2_r6_p_se, 
+                                Percent.inc.hours = Q2_r7_p, 
+                                percent.inc.hours.se = Q2_r7_p_se, 
+                                percent.red.hours = Q2_r8_p, 
+                                percent.red.hours.se = Q2_r8_p_se, 
+                                percent.inc.wage = Q2_r9_p, 
+                                percent.inc.wage.se = Q2_r9_p_se, 
+                                percent.red.wage = Q2_r10_p, 
+                                percent.red.work.se = Q2_r10_p_se)
+Kept_paying_state <- covid_table8_q3_state
+Kept_paying_state <- rename(all_of(Kept_paying_state), Statec = State, 
+                                    percent.payed.nowork = Q3_r1_p, 
+                                    percent.payed.nowork.se = Q3_r1_p_se)
+Payed_health_insureance_state <- covid_table11_q4_state
+Payed_health_insureance_state <- rename(all_of(Payed_health_insureance_state),
+                                          Statec = State, 
+                                          percent.payed.insurance = Q4_r65_p, 
+                                          percent.payed.insurance.se = Q4_r65_p_se)
+Telework_state <- covid_table14_q5_state
+Telework_state<- rename( all_of(Telework_state), 
+                                  Statec = State, 
+                                  percent.w.inc.tele = Q5_r13_p, 
+                                  percent.w.inc.tele.se = Q5_r13_p_se, 
+                                  percent.same.tele = Q5_r7_p, 
+                                  percent.same.tele.se = Q5_r7_p_se, 
+                                  percent.no.tele = Q5_r8_p, 
+                                  percent.no.tele.se = Q5_r8_p_se)
+Inc_paid_leave_state <- covid_table17_q6_state
+Inc_paid_leave_state <- rename(all_of(Inc_paid_leave_state), 
+                                 Statec = State, 
+                                 percent.inc.leave = Q6_r59_p, 
+                                 percent.inc.leave.se = Q6_r59_p_se)
+Gotgov_grant_state <- covid_table20_q7_state
+Gotgov_grant_state <- rename(all_of(Gotgov_grant_state), 
+                               Statec = State, 
+                               percent.gotgov.grant = Q7_r1_p, 
+                               percent.gotgov.grant.se = Q7_r1_p_se)
+```
+
+## Variable Creation 
+
+
+```{r, echo=TRUE}
+merged <- merge(Demand_closure_state, Kept_paying_state, by = "Statec")
+merged <- merge(merged, Payed_health_insureance_state, by = "Statec")
+merged <- merge(merged, Inc_paid_leave_state, by = "Statec")
+merged <- merge(merged, Business_state, by = "Statec")
+merged <- merge(merged, Telework_state, by = "Statec")
+merged <- merge(merged, Gotgov_grant_state, by = "Statec")
+
+merged <- select(merged, contains("c"))
+merged <- rename(merged, State = Statec)
+```
+
+
+It is worth noting that while renaming I had to change "State" to "Statec" so that I could select for all the rows I wanted using a common character that was absent elsewhere in the code; `r merged <- select(merged, contains("c"))`. Since I performed multiple merges I also checked the dimensions after each time. 
+
+```{r, echo=FALSE}
+merged$low.demand.state <- as.factor(ifelse(merged$percent.w.decreased.demand > 55.58, "Yes", "No"))
+merged$inc.hours.state <- as.factor(ifelse(merged$Percent.inc.hours > 4.91, "Yes", "No"))
+merged$red.hours.state <- as.factor(ifelse(merged$percent.red.hours > 29.94, "Yes", "No"))
+merged$red.wage.state <- as.factor(ifelse(merged$percent.red.wage > 9.54, "Yes", "No"))
+merged$inc.wage.state <- as.factor(ifelse(merged$percent.inc.wage > 5.66, "Yes", "No"))
+merged$supply.shortage.state <- as.factor(ifelse(merged$percent.w.supply.shortage > 36.30, "Yes", "No"))
+
+```
+
+```{r, echo=TRUE}
+merged$closure.state <- as.factor(ifelse(merged$percent.gov.closure > 18.74, "Yes", "No"))
+merged$health.insurance.state <- as.factor(ifelse(merged$percent.payed.insurance > 41.86, "Yes", "No"))
+merged$no.tele.state <- as.factor(ifelse(merged$percent.no.tele > 52.25, "Yes", "No"))
+merged$paid.leave.state <- as.factor(ifelse(merged$percent.inc.leave > 13.85, "Yes", "No"))
+merged$telework.state <- as.factor(ifelse(merged$percent.w.inc.tele > 30.89, "Yes", "No"))
+merged$payed.nowork.state <- as.factor(ifelse(merged$percent.payed.nowork > 51.25, "Yes", "No"))
+merged$gov.grant.state <- as.factor(ifelse(merged$percent.gotgov.grant > 62.13, "Yes", "No"))
+dim(merged)
+```
+
+I was most interested in government-mandated closure, covid-related grant, establishments that payed health insurance for some employees, telework accomadations and paid sick leave so I created binary flags to subset the data by later. 
+Below are examples of some of the flags I created. If the value for ___.state is "Yes" this means the state percentage of whatever is being measured is higher than the national percentage. For example merged$percent.gov.closure[1] above gives the 
+national percentage of establishments that had a government-mandated closure, 
+`r merged$percent.gov.closure[1]`
+
+The next step was creating a variable for Political party, a variable for State symbol (for the plots later on) and ordering the rows of my dataframe in a way that made the most sense to me. In the process of doing this I was also able to get rid of one of the rows which wasn't relevant to my questions 
+
+```{r, echo=FALSE}
+
+merged$Poliparty <- c("Republican", "Republican", "Democratic", "Democratic", 
+                       "Democratic", "Democratic", "Democratic", "Democratic", 
+                       "Democratic", "Republican", "Democratic", "Democratic", 
+                       "Republican", "Democratic", "Republican", "Republican", 
+                       "Republican", "Republican", "Republican", "Democratic", 
+                       "Democratic", "Democratic", "Democratic", "Democratic", 
+                       "Republican", "Republican", "Republican", "Republican", 
+                       "Democratic", "Democratic", "Democratic", "Democratic",
+                       "Democratic", "Republican", "Republican", "Republican", 
+                       "Republican", "Democratic", "Democratic", "NA",
+                       "Democratic", "Republican", "Republican", "Republican", 
+                       "Republican","Total", "Republican", "Democratic", 
+                       "Democratic", "Democratic", "Republican", "Republican", 
+                       "Republican")
+```
+```{r, echo=TRUE}
+merged <- merged[c(46, 1:39, 41:45, 47:53),]
+```
+
+```{r, echo=FALSE}
+merged$State_Symbol <- c("Total", "AL", "AK", "AZ", "AK", "CA", "CO", "CN", "DE", "DC", "FL", "GA", "HI", 
+                         "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO",
+                         "MT", "NB", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", 
+                         "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY")
+```
+
+
+
+
+# Visualization
+
+I decided to make two different datasets from my original which I would use to make my plots and charts; one based on the government closure flag and one based on the government grant flag 
+```{r, echo=TRUE} 
+Closure <- filter(merged, closure.state == "Yes")
+Govgrant <- filter(merged, gov.grant.state == "Yes")
+```
+
+## Plots 
+
+### Plot 1 - Effect of Political Party on Telework Offered Post-Closure
+
+For my first plot I looked at percentage of establishments with no telework offered grouped by political party and state
+
+```{r, echo=TRUE}
+
+ggplot(data = Closure, aes(x = State_Symbol, y = percent.no.tele, fill = Poliparty)) + 
+  geom_col() + 
+  scale_fill_manual(values = c("blue", "red")) +
+  xlab("State Symbol") +
+  ylab("Percent of Establishments With No Telework") + 
+  ggtitle("Absence of Telework in States With High Rates of Business Closure") + 
+  guides(fill = guide_legend(title = "Political Party")) +
+  theme_light() +
+  facet_wrap(~ Poliparty)
+```
+
+For my next 3 plots I looked at the percentage of establishments with that put their grant money towards certain employee benefits
+
+### Plot 2 - Effect of Political Party on Allocation of Grant Funds A
+
+```{r, echo=TRUE}
+
+ggplot(data = Govgrant, aes(x = State_Symbol, y = percent.payed.nowork, fill = Poliparty)) + 
+  geom_col() +
+  scale_fill_manual(values = c("blue", "red")) +
+  xlab("State Symbol") + 
+  ylab("Percent of Establishments That Continued to Pay Employees While Not Working") + 
+  ggtitle("Non-worked Pay in States With High Rates of Business CLosure") + 
+  guides(fill = guide_legend(title = "Political Party")) + 
+  facet_wrap(~ Poliparty) + 
+  theme_light()
+```
+
+### Plot 3 - Effect of Political Party on Allocation of Grant Funds B
+
+```{r, ech=TRUE}
+
+ggplot(data = Govgrant, aes(x = State_Symbol, y = percent.payed.insurance, fill = Poliparty)) + 
+  geom_col() +
+  scale_fill_manual(values = c("blue", "red")) +
+  xlab("State Symbol") + 
+  ylab("Percent of Establishments That Employee Payed Health Insurance") + 
+  ggtitle("Health Insurance Coverage in States With High Rates of Grant Reception")  + 
+  guides(fill = guide_legend(title = "Political Party")) + 
+  facet_wrap(~ Poliparty) + 
+  theme_light()
+```
+
+
+### Plot 4 - Effect of Political Party on Allocatino of Grant Funds C
+
+```{r, echo=TRUE}
+
+ggplot(data = Govgrant, aes(x = State_Symbol, y = percent.inc.leave, fill = Poliparty)) + 
+  geom_col() +
+  scale_fill_manual(values = c("blue", "red")) +
+  xlab("State Symbol") + 
+  ylab("Percent of Establishments That Increased Paid Sick Leave") + 
+  ggtitle("Sick Leave in States With High Rates of Grant Reception") + 
+  guides(fill = guide_legend(title = "Political Party")) + 
+  facet_wrap(~ Poliparty) + 
+  theme_light()
+```
+
+
+## Tables 
+
+I intended for my tables to provide a more detailed look at the differences between states as it related to their political party. In order to do that I created a few more new variables so that I could compare averages in my variables of interest. I wanted to see whether states that were high in government closure were also high in telework and whether states where many businesses received covid-related grants also put those grants towards some employee benefits.
+
+```{r, echo=FALSE}
+Closure <- mutate(Closure, Avg.no.tele.Rep = mean(Closure$percent.no.tele[c(1, 11)]))
+Closure <- mutate(Closure, Avg.no.tele.Dem = mean(Closure$percent.no.tele[c(2:10, 12:14)]))
+Closure <- mutate(Closure, Avg.w.inc.tele.Rep = mean(Closure$percent.w.inc.tele[c(1, 11)]))
+Closure <- mutate(Closure, Avg.w.inc.tele.Dem = mean(Closure$percent.w.inc.tele[c(2:10, 12:14)]))
+Govgrant <- mutate(Govgrant, Avg.payed.insurance.Rep = mean(Govgrant$percent.payed.insurance[c(1,4,7:9,15:17,19:21,24:27)]))
+Govgrant <- mutate(Govgrant, Avg.payed.insurance.Dem = mean(Govgrant$percent.payed.insurance[c(2,3,5,6,10:14,18,22,23)]))
+Govgrant <- mutate(Govgrant, Avg.payed.no.work.Rep = mean(Govgrant$percent.payed.nowork[c(1,4,7:9,15:17,19:21,24:27)]))
+Govgrant <- mutate(Govgrant, Avg.payed.no.work.Dem = mean(Govgrant$percent.payed.nowork[c(2,3,5,6,10:14,18,22,23)]))
+Govgrant <- mutate(Govgrant, Avg.inc.leave.Rep = mean(Govgrant$percent.inc.leave[c(1,4,7:9,15:17,19:21,24:27)]))
+Govgrant <- mutate(Govgrant, Avg.inc.leave.Dem = mean(Govgrant$percent.inc.leave[c(2,3,5,6,10:14,18,22,23)]))
+```
+
+I wanted to see whether states that were high in government closure were also high in telework and whether states where many businesses received covid-related grants also put those grants towards some employee benefits. I was also interested in whether these measures changed as a function of political party 
+
+
+### Table 1 - Closure Table 
+
+
+```{r, echo=FALSE}
+Closure %>%
+  group_by(Poliparty) %>%
+  select(Poliparty, State_Symbol, Avg.w.inc.tele.Dem, Avg.w.inc.tele.Rep, percent.w.inc.tele, percent.no.tele, Avg.no.tele.Dem, Avg.no.tele.Rep) %>%
+  gt(rowname_col = "State Symbol") %>%
+  tab_header(title = "Telework Accomodations In Response to Covid Closures", 
+             subtitle = "Percent of Establishments") %>%
+  tab_spanner(label = "Percentage by State", 
+              columns = vars(percent.w.inc.tele, percent.no.tele)) %>%
+  cols_label(Avg.w.inc.tele.Dem = "Increased Telework (Democratic)", 
+             Avg.w.inc.tele.Rep = "Increased Telework (Republican)", 
+             percent.w.inc.tele = "Increased Telework", 
+             percent.no.tele = "No Telework Available", 
+             Avg.no.tele.Dem = "No Telework Available (Democratic)", 
+             Avg.no.tele.Rep = "No Telework Available (Republican)")
+```
+
+
+### Table 3 - Covid-Related Grant Table A
+
+```{r, echo=FALSE}
+Govgrant_table1 <- Govgrant %>%
+  group_by(Poliparty) %>%
+  select(Poliparty, State_Symbol, Avg.payed.insurance.Dem, Avg.payed.insurance.Rep, percent.payed.insurance, 
+         percent.payed.nowork, Avg.payed.no.work.Dem, Avg.payed.no.work.Rep) %>%
+  gt(rowname_col = "State Symbol") %>%
+  tab_header(title = "Employee Income Accomodations In Response to covid Grant", 
+             subtitle = "Percent of Establishments") %>%
+  tab_spanner(label = "Percentage by State", 
+              columns = vars(percent.payed.insurance, percent.payed.nowork)) %>%
+  cols_label(Avg.payed.insurance.Dem = "Payed Employee Healh Insurance (Democratic)", 
+             Avg.payed.insurance.Rep = "Payed Employee Health Insurance (Republican)", 
+             percent.payed.insurance = "Payed Employee Health Insurance", 
+             percent.payed.nowork = "Payed Employees Nonworked Time",
+             Avg.payed.no.work.Dem = "Payed Employees Nonworked Time (Democratic)", 
+             Avg.payed.no.work.Rep = "Payed Employees Nonworked Time (Republican)")
+```
+
+
+### Table 3 - Covid-Related Grant Table B
+
+
+```{r, echo=FALSE}
+Govgrant_table2 <- Govgrant %>%
+  group_by(Poliparty) %>%
+  select(Poliparty, State_Symbol, Avg.inc.leave.Dem, Avg.inc.leave.Rep, percent.inc.leave, 
+         percent.payed.nowork, Avg.payed.no.work.Dem, Avg.payed.no.work.Rep) %>%
+  gt(rowname_col = "State Symbol") %>%
+  tab_header(title = "Employee Accomodations In Response to covid Grant", 
+             subtitle = "Percent of Establishments") %>%
+  tab_spanner(label = "Percentage by State", 
+              columns = vars(percent.inc.leave, percent.payed.nowork)) %>%
+  cols_label(Avg.inc.leave.Dem = "Increased Paid Sick Leave (Democratic)", 
+             Avg.inc.leave.Rep = "Increased Paid Sick Leave (Republican)", 
+             percent.inc.leave = "Increased Paid Sick Leave", 
+             percent.payed.nowork = "Payed Employees Nonworked Time",
+             Avg.payed.no.work.Dem = "Payed Employees Nonworked Time (Democratic)", 
+             Avg.payed.no.work.Rep = "Payed Employees Nonworked Time (Republican)")
+```
+
+
+At the beginning of this project I'd expected Republican States to be below Democratic states in percentages of employee accommodations (moreso) and telework accommodations (less so). So the first plot/table were unremarkable. However, it is worth noting that if more republican states had fit the criteria for my plot (high rates of government-mandated business closure), a different relationship may have been observed. 
+On the other hand, the remaining tables/plots surprised me given that Republican state averages ranged from slightly (`r Govgrant$Avg.inc.leave.Rep[1]`% vs 
+`r Govgrant$Avg.inc.leave.Dem`%) to substantially higher (`r Govgrant$Avg.payed.no.work.Rep`% vs `Govgrant$Avg.payed.no.work.Dem`% )than that of Democratic states with near equal numbers of states represented between groups. This may suggest a difference in business response to crises. But confounding variables include industry type represented (it might be the case that certain types of industries make up a larger proportion of some states and this imbalance is creating these differences). But given more data, it could be the case that one would find businesses in Republican states more likely to accomodate their employees monetarily while businesses in Democratic states are more likely to adapt to changes. 

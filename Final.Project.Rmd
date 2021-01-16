@@ -299,7 +299,7 @@ Closure %>%
 ### Table 3 - Covid-Related Grant Table A
 
 ```{r, echo=FALSE}
-Govgrant_table1 <- Govgrant %>%
+Govgrant %>%
   group_by(Poliparty) %>%
   select(Poliparty, State_Symbol, Avg.payed.insurance.Dem, Avg.payed.insurance.Rep, percent.payed.insurance, 
          percent.payed.nowork, Avg.payed.no.work.Dem, Avg.payed.no.work.Rep) %>%
@@ -320,8 +320,8 @@ Govgrant_table1 <- Govgrant %>%
 ### Table 3 - Covid-Related Grant Table B
 
 
-```{r, echo=FALSE}
-Govgrant_table2 <- Govgrant %>%
+```{r, echo=TRUE}
+Govgrant %>%
   group_by(Poliparty) %>%
   select(Poliparty, State_Symbol, Avg.inc.leave.Dem, Avg.inc.leave.Rep, percent.inc.leave, 
          percent.payed.nowork, Avg.payed.no.work.Dem, Avg.payed.no.work.Rep) %>%
